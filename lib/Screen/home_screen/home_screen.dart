@@ -1,12 +1,28 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:riverpod_test_case/commons/databasehelper.dart';
-import 'package:riverpod_test_case/models/userModel.dart';
+import 'package:hive/hive.dart';
 
-
-final userDataProvider = FutureProvider<List<UserModel>>((ref) {
-  return DatabaseHelper().getMicroData();
+final _hiveBox = Hive.box('testBox');
+final userDataProvider = FutureProvider<List<Map<String, dynamic>>>((ref) async {
+  return await getData();
 });
+
+Future<List<Map<String, dynamic>>> getData() async {
+
+
+  final data =_hiveBox.keys.map((key){
+
+    final item = _hiveBox.get(key);
+    return {'key':key,"firstname": item["firstname"],
+    "lastname": item["lastname"],
+    "email": item["email"],
+    "mobilenumber": item["mobilenumber"],
+    "country": item["country"]};
+  }).toList();
+
+
+  return data.toList();
+}
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({Key? key}) : super(key: key);
@@ -16,14 +32,14 @@ class HomeScreen extends ConsumerWidget {
     final userData = ref.watch(userDataProvider);
     return Scaffold(
       appBar: AppBar(
-        title: Text('text'),
+        title: Text('Data'),
       ),
       body: userData.when(
           data: (data) {
             return ListView.builder(
               itemCount: data.length,
               itemBuilder: ((context, index) {
-                return ListTile(title: Text('${data[index].firstname} ${data[index].lastname}'));
+                return ListTile(title: Text('${data[index]['firstname']} ${data[index]['mobilenumber']}'));
               }),
             );
           },

@@ -1,7 +1,14 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
-import 'package:riverpod_test_case/commons/databasehelper.dart';
-import 'package:riverpod_test_case/Screen/homescreen.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
+import 'package:hive/hive.dart';
+import 'package:riverpod_test_case/Screen/home_screen/home_screen.dart';
+import 'package:riverpod_test_case/config/rest_url.dart';
+import 'package:riverpod_test_case/utils/theme/app_colors.dart';
+import 'package:riverpod_test_case/utils/theme/test_styles.dart';
+
+final _hiveBox = Hive.box('testBox');
 
 class LoginPage extends StatelessWidget {
   LoginPage({Key? key}) : super(key: key);
@@ -27,8 +34,10 @@ class LoginPage extends StatelessWidget {
               alignment: Alignment.center,
               width: 120,
               height: 120,
-              decoration: BoxDecoration(shape: BoxShape.circle, color: Colors.red),
-              child: TextView("Neo", 24.0, FontWeight.w800, Colors.white),
+              decoration:
+                  BoxDecoration(shape: BoxShape.circle, color: Colors.red),
+              child: Text(AppLocalizations.of(context)!.logo,
+                  style: AppTextStyles.logo),
             ),
             SizedBox(height: MediaQuery.of(context).size.height * 0.09),
             Form(
@@ -37,11 +46,11 @@ class LoginPage extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                   ColumnView('First Name',_firstname,TextInputType.text),
-                   ColumnView('Last Name ',_lastname,TextInputType.text),
-                   ColumnView('Email',_email,TextInputType.text),
-                   ColumnView('Phone Number',_mobileno,TextInputType.number),
-                   ColumnView('Country',_country,TextInputType.text),
+                  ColumnView('First Name',_firstname,TextInputType.text),
+                  ColumnView('Last Name ',_lastname,TextInputType.text),
+                  ColumnView('Email',_email,TextInputType.text),
+                  ColumnView('Phone Number',_mobileno,TextInputType.number),
+                  ColumnView('Country',_country,TextInputType.text),
                   InkWell(
                     onTap: () => onClick(context),
                     child: Container(
@@ -51,12 +60,13 @@ class LoginPage extends StatelessWidget {
                       decoration: BoxDecoration(
                           color: Colors.indigo,
                           borderRadius: BorderRadius.circular(25)),
-                      child: TextView("Sign Up", 16.0, FontWeight.w600, Colors.white),
+                      child: Text("Sign Up", style: AppTextStyles.h1),
                     ),
                   ),
                 ],
               ),
             ),
+            SizedBox(height: MediaQuery.of(context).size.height * 0.1),
           ],
         ),
       ),
@@ -64,14 +74,22 @@ class LoginPage extends StatelessWidget {
   }
 
   onClick(BuildContext context) async {
-
     if (!loginFormKey.currentState!.validate()){
       return;
     }else{
       if(click){
         click = false;
-        Response response = await Dio().get("https://jsonplaceholder.typicode.com/posts");
-        if(response.statusCode==200){
+
+        SmartDialog.showLoading(
+            backDismiss: false, clickMaskDismiss: false, msg: "Please wait...");
+        Response response = await Dio().post(RestUrl.loginUrl,
+            data: {"username": "kminchelle", "password": "0lelplR"});
+        debugPrint(
+            "---------------------------------------------------------------------------");
+        debugPrint("${response.data}");
+        debugPrint(
+            "---------------------------------------------------------------------------");
+        if (response.statusCode == 200) {
           Map<String, dynamic> data = {
             "firstname": _firstname.text.trim(),
             "lastname": _lastname.text.trim(),
@@ -80,41 +98,26 @@ class LoginPage extends StatelessWidget {
             "country": _country.text.trim(),
           };
 
-          int check=await DatabaseHelper().saveReg(data);
-          if(check==-1||check==0){
-            debugPrint('Try Again Later');
-            click=true;
-          }else{
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const HomeScreen()),
-            );
+          await _hiveBox.add(data);
+          debugPrint('Try Again Later${_hiveBox.length}');
+          SmartDialog.dismiss();
+          Navigator.push(context,
+              MaterialPageRoute(builder: (context) => const HomeScreen()));
 
-            _firstname.clear();
-            _lastname.clear();
-            _email.clear();
-            _mobileno.clear();
-            _country.clear();
-          }
-
+          _firstname.clear();
+          _lastname.clear();
+          _email.clear();
+          _mobileno.clear();
+          _country.clear();
         }
 
         else{
+          SmartDialog.dismiss();
           debugPrint('Try Again Later');
-          click=true;
+          click = true;
         }
       }
-
-
     }
-  }
-
-  Widget TextView(String txt, var size, var font,var color_type) {
-    return Text(
-      txt,
-      textAlign: TextAlign.center,
-      style: TextStyle(color: color_type, fontSize: size, fontWeight: font),
-    );
   }
 
   Widget ColumnView(String name,TextEditingController controller,TextInputType typeK){
@@ -124,41 +127,67 @@ class LoginPage extends StatelessWidget {
           width: double.infinity,
           padding: const EdgeInsets.only(left: 20, top: 5, bottom: 5, right: 20),
           margin: EdgeInsets.symmetric(horizontal: 25),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(25),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.grey.withOpacity(0.03),
-                spreadRadius: 10,
-                blurRadius: 3,
-                // changes position of shadow
-              ),
-            ],
-          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               TextFormField(
+                controller: controller,
+
+                keyboardType: typeK,
+                textInputAction: TextInputAction.next,
+                // inputFormatters: <TextInputFormatter>[
+                //   FilteringTextInputFormatter.allow(RegExp("[a-zA-Z ]")),
+                // ], //
                 validator: (value) {
                   if (value!.isEmpty) {
-                    return 'Please enter the $name';
+                    return "Please Enter Valid $name";
                   }
                   return null;
                 },
-                keyboardType: typeK,
-                controller: controller,
-                cursorColor: Color(0xFF000000),
-                style: TextStyle(
-                    fontSize: 17,
-                    fontWeight: FontWeight.w500,
-                    color: Color(0xFF000000)),
                 decoration: InputDecoration(
-                    prefixIcon: Icon(Icons.email_outlined),
-                    prefixIconColor: Color(0xFF000000),
-                    hintText: name,
-                    border: InputBorder.none),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(25),
+                    borderSide: BorderSide(
+                      color: Colors.white,
+                      width: 1,
+                    ),
+                  ),
+                  hintText: name,
+                  filled: true,
+                  fillColor: Colors.white,
+                  prefixIcon: Icon(Icons.email_outlined),
+                  prefixIconColor: AppColors.black,
+                  enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(25),
+                      borderSide: BorderSide(
+                        color: Colors.white,
+                        width: 1,
+                      )),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(25),
+                    borderSide: BorderSide(
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
               ),
+              // TextFormField(
+              //   validator: (value) {
+              //     if (value!.isEmpty) {
+              //       return 'Please enter the $name';
+              //     }
+              //     return null;
+              //   },
+              //   keyboardType: typeK,
+              //   controller: controller,
+              //   cursorColor: AppColors.black,
+              //   style: AppTextStyles.bodyLg,
+              //   decoration: InputDecoration(
+              //       prefixIcon: Icon(Icons.email_outlined),
+              //       prefixIconColor: AppColors.black,
+              //       hintText: name,
+              //       border: InputBorder.none),
+              // ),
             ],
           ),
         ),
@@ -167,5 +196,3 @@ class LoginPage extends StatelessWidget {
     );
   }
 }
-
-

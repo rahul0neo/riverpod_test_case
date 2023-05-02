@@ -1,8 +1,9 @@
+/*
 import 'dart:async';
 import 'dart:io' as io;
 import 'package:path/path.dart' as dbPath;
 import 'package:path_provider/path_provider.dart';
-import 'package:riverpod_test_case/models/userModel.dart';
+import 'package:riverpod_test_case/models/user_model.dart';
 import 'package:sqflite/sqflite.dart';
 
 class DatabaseHelper {
@@ -37,4 +38,4 @@ class DatabaseHelper {
     List<Map<String, dynamic>> resultMap = await db!.rawQuery('select * from user');
     return resultMap.map((f) => UserModel.fromMap(f)).toList();
   }
-}
+}*/
